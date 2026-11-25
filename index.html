@@ -52,7 +52,7 @@
   <p><b>iPhone:</b></p>
   <ol>
     <li>Mở trang này bằng Safari, bấm <b>Tải về lịch</b>.</li>
-    <li>Màn hình danh sách sự kiện hiện ra, chọn <b>Thêm tất cả</b>.</li>
+    <li>Màn hình danh sách sự kiện hiện ra, bấm dấu <b>✓</b> ở góc trên (Thêm tất cả).</li>
     <li>Nếu Safari chỉ hỏi tải file: mở app <b>Tệp</b> → <b>Tải về</b> → bấm <b>lich-am.ics</b> → <b>Thêm tất cả</b>.</li>
   </ol>
   <p class="muted">Giỗ được nhắc lúc 9 giờ sáng 3 ngày trước và 18 giờ hôm trước. Mùng 1 và rằm được nhắc lúc 18 giờ hôm trước.</p>
@@ -143,7 +143,7 @@
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 60000);
     }
-    msg.textContent = `Đã tạo ${events.length} lời nhắc. Mở file lich-am.ics để thêm vào lịch.`;
+    msg.textContent = `Đã tạo ${events.length} lời nhắc. ` + (ios ? 'Bấm dấu ✓ (Thêm tất cả) để đưa vào lịch.' : 'Mở file lich-am.ics để thêm vào lịch.');
   };
 </script>
 </body>
