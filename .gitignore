@@ -2,3 +2,4 @@
 node_modules/
 rust/lich-am/rust-anything.json
 dist/
+.wrangler/
