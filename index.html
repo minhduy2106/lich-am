@@ -52,7 +52,8 @@
   <p><b>iPhone:</b></p>
   <ol>
     <li>Mở trang này bằng Safari, bấm <b>Tải về lịch</b>.</li>
-    <li>Mở file <b>lich-am.ics</b> vừa tải, chọn <b>Thêm tất cả</b>.</li>
+    <li>Màn hình danh sách sự kiện hiện ra, chọn <b>Thêm tất cả</b>.</li>
+    <li>Nếu Safari chỉ hỏi tải file: mở app <b>Tệp</b> → <b>Tải về</b> → bấm <b>lich-am.ics</b> → <b>Thêm tất cả</b>.</li>
   </ol>
   <p class="muted">Giỗ được nhắc lúc 9 giờ sáng 3 ngày trước và 18 giờ hôm trước. Mùng 1 và rằm được nhắc lúc 18 giờ hôm trước.</p>
   <p><b>Google Calendar</b> (trên máy tính):</p>
@@ -129,11 +130,17 @@
       return;
     }
     const ics = call(R.toIcs, events, new Date().toISOString());
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([ics], { type: 'text/calendar;charset=utf-8' }));
-    a.download = 'lich-am.ics';
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+    // iPhone/iPad: Safari chỉ hiện màn hình "Thêm tất cả" khi mở thẳng nội dung lịch; tải file thì nó lưu vào app Tệp.
+    const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    if (ios) {
+      location.href = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(ics);
+    } else {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([ics], { type: 'text/calendar;charset=utf-8' }));
+      a.download = 'lich-am.ics';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+    }
     msg.textContent = `Đã tạo ${events.length} lời nhắc. Mở file lich-am.ics để thêm vào lịch.`;
   };
 </script>
