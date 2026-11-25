@@ -56,8 +56,14 @@
     <li>Muốn vào lịch Gmail (hiện cả trên Google Calendar, giữ nguyên giờ nhắc): trước đó vào <b>Cài đặt → Ứng dụng → Lịch → Lịch mặc định</b>, chọn tài khoản Gmail.</li>
     <li>Nếu Safari chỉ hỏi tải file: mở app <b>Tệp</b> → <b>Tải về</b> → bấm <b>lich-am.ics</b> → <b>Thêm tất cả</b>.</li>
   </ol>
+  <p><b>Android:</b></p>
+  <ol>
+    <li>Mở trang này bằng Chrome, bấm <b>Tải về lịch</b>.</li>
+    <li>Bấm <b>Mở</b> trên thông báo tải xong. Lỡ tắt thông báo: Chrome → <b>⋮</b> → <b>Tệp đã tải xuống</b> → bấm <b>lich-am.ics</b>.</li>
+    <li>Google Calendar mở ra, chọn lịch (tài khoản Gmail) rồi bấm thêm.</li>
+  </ol>
   <p class="muted">Giỗ được nhắc lúc 9 giờ sáng 3 ngày trước và 18 giờ hôm trước. Mùng 1 và rằm được nhắc lúc 18 giờ hôm trước.</p>
-  <p><b>Google Calendar</b> (trên máy tính):</p>
+  <p><b>Google Calendar trên máy tính</b> (không bắt buộc, chỉ khi không dùng điện thoại):</p>
   <ol>
     <li>Tạo một lịch mới tên “Lịch âm”, rồi trong phần cài đặt của lịch đó, đặt thông báo mặc định (ví dụ: 1 ngày trước). Google bỏ qua giờ nhắc có sẵn trong file.</li>
     <li>Vào Cài đặt → Nhập và xuất → chọn file <b>lich-am.ics</b>, nhập vào lịch “Lịch âm”.</li>
@@ -144,7 +150,10 @@
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 60000);
     }
-    msg.textContent = `Đã tạo ${events.length} lời nhắc. ` + (ios ? 'Bấm Thêm tất cả để đưa vào lịch mặc định.' : 'Mở file lich-am.ics để thêm vào lịch.');
+    const android = /Android/.test(navigator.userAgent);
+    msg.textContent = `Đã tạo ${events.length} lời nhắc. ` + (ios ? 'Bấm Thêm tất cả để đưa vào lịch mặc định.'
+      : android ? 'Bấm Mở trên thông báo tải xong, rồi chọn Google Calendar.'
+      : 'Mở file lich-am.ics để thêm vào lịch.');
   };
 </script>
 </body>
