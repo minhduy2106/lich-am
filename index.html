@@ -130,16 +130,18 @@
       return;
     }
     const ics = call(R.toIcs, events, new Date().toISOString());
-    // iPhone/iPad: Safari chỉ hiện màn hình "Thêm tất cả" khi mở thẳng nội dung lịch; tải file thì nó lưu vào app Tệp.
+    const url = URL.createObjectURL(new Blob([ics], { type: 'text/calendar;charset=utf-8' }));
+    // iPhone/iPad: mở thẳng blob thì Safari hiện màn hình thêm vào lịch (đã thử qua iPhone Mirroring);
+    // link data: bị chặn im lặng, còn tải file thì chỉ lưu vào app Tệp.
     const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     if (ios) {
-      location.href = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(ics);
+      location.href = url;
     } else {
       const a = document.createElement('a');
-      a.href = URL.createObjectURL(new Blob([ics], { type: 'text/calendar;charset=utf-8' }));
+      a.href = url;
       a.download = 'lich-am.ics';
       a.click();
-      setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
     }
     msg.textContent = `Đã tạo ${events.length} lời nhắc. Mở file lich-am.ics để thêm vào lịch.`;
   };
