@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lịch âm</title>
+<style>
+  :root { --bg:#faf7f2; --fg:#2b2622; --muted:#6b625a; --line:#d9d1c6; --card:#fff; --accent:#a3361f; --accent-fg:#fff; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg:#1c1a18; --fg:#efe9e2; --muted:#a89f95; --line:#3a3532; --card:#262321; --accent:#e0694f; --accent-fg:#1c1a18; }
+  }
+  :root[data-theme="dark"] { --bg:#1c1a18; --fg:#efe9e2; --muted:#a89f95; --line:#3a3532; --card:#262321; --accent:#e0694f; --accent-fg:#1c1a18; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 18px/1.5 system-ui, -apple-system, sans-serif; }
+  main { max-width: 560px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 30px; margin: 0 0 4px; }
+  h2 { font-size: 20px; margin: 28px 0 8px; }
+  .muted { color: var(--muted); }
+  .row { display: grid; grid-template-columns: 1fr 72px 72px 48px; gap: 8px; margin-bottom: 8px; }
+  .head { font-size: 15px; color: var(--muted); margin-bottom: 4px; }
+  input, select, button { font: inherit; color: inherit; }
+  input, select { width: 100%; min-height: 48px; padding: 0 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+  button { min-height: 48px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); cursor: pointer; }
+  .check { display: flex; align-items: center; gap: 12px; min-height: 48px; }
+  .check input { width: 24px; min-height: 24px; }
+  .primary { width: 100%; margin-top: 28px; border: 0; background: var(--accent); color: var(--accent-fg); font-weight: 600; font-size: 20px; }
+  #msg { min-height: 1.5em; margin-top: 12px; }
+  ol { padding-left: 22px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Lịch âm</h1>
+  <p id="today" class="muted">Đang tải…</p>
+
+  <h2>Ngày giỗ (theo âm lịch)</h2>
+  <div class="row head" aria-hidden="true"><span>Tên</span><span>Ngày</span><span>Tháng</span><span></span></div>
+  <div id="rows"></div>
+  <button type="button" id="add">+ Thêm ngày giỗ</button>
+
+  <h2>Nhắc thêm</h2>
+  <label class="check"><input type="checkbox" id="mung1" checked> Mùng 1 hằng tháng</label>
+  <label class="check"><input type="checkbox" id="ram" checked> Rằm (15) hằng tháng</label>
+  <label class="check">Tạo lịch cho
+    <select id="years" style="width:auto"><option>1</option><option>3</option><option selected>5</option><option>10</option></select> năm tới
+  </label>
+
+  <button type="button" class="primary" id="go" disabled>Tải về lịch</button>
+  <p id="msg" role="status"></p>
+
+  <h2>Cách thêm vào lịch</h2>
+  <p><b>iPhone:</b></p>
+  <ol>
+    <li>Mở trang này bằng Safari, bấm <b>Tải về lịch</b>.</li>
+    <li>Mở file <b>lich-am.ics</b> vừa tải, chọn <b>Thêm tất cả</b>.</li>
+  </ol>
+  <p class="muted">Giỗ được nhắc lúc 9 giờ sáng 3 ngày trước và 18 giờ hôm trước. Mùng 1 và rằm được nhắc lúc 18 giờ hôm trước.</p>
+  <p><b>Google Calendar</b> (trên máy tính):</p>
+  <ol>
+    <li>Tạo một lịch mới tên “Lịch âm”, rồi trong phần cài đặt của lịch đó, đặt thông báo mặc định (ví dụ: 1 ngày trước). Google bỏ qua giờ nhắc có sẵn trong file.</li>
+    <li>Vào Cài đặt → Nhập và xuất → chọn file <b>lich-am.ics</b>, nhập vào lịch “Lịch âm”.</li>
+  </ol>
+</main>
+
+<script type="module">
+  import init, * as R from './pkg/lich_am.js';
+
+  const $ = (s) => document.querySelector(s);
+  const msg = $('#msg');
+  // Hàm Rust nhận và trả JSON dạng chuỗi.
+  const call = (fn, ...args) => JSON.parse(fn(...args.map((a) => JSON.stringify(a))));
+
+  const rows = $('#rows');
+  function read() {
+    return [...rows.children].map((r) => {
+      const [n, d, m] = r.querySelectorAll('input');
+      return { name: n.value.trim(), day: Number(d.value), month: Number(m.value) };
+    });
+  }
+  function save() {
+    try { localStorage.setItem('gios', JSON.stringify(read())); } catch {}
+  }
+  function addRow(g = {}) {
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML = '<input aria-label="Tên người mất" placeholder="Ông nội">'
+      + '<input aria-label="Ngày âm" type="number" inputmode="numeric" min="1" max="30" placeholder="Ngày">'
+      + '<input aria-label="Tháng âm" type="number" inputmode="numeric" min="1" max="12" placeholder="Tháng">'
+      + '<button type="button" aria-label="Xoá dòng này">✕</button>';
+    const [n, d, m] = row.querySelectorAll('input');
+    n.value = g.name || '';
+    d.value = g.day || '';
+    m.value = g.month || '';
+    row.querySelector('button').onclick = () => { row.remove(); save(); };
+    row.oninput = save;
+    rows.append(row);
+  }
+  let saved = [];
+  try { saved = JSON.parse(localStorage.getItem('gios')) || []; } catch {}
+  (saved.length ? saved : [{}]).forEach(addRow);
+  $('#add').onclick = () => addRow();
+
+  try {
+    await init();
+  } catch (e) {
+    msg.textContent = 'Không tải được bộ tính lịch. Hãy mở trang qua http(s), không mở trực tiếp file.';
+    throw e;
+  }
+
+  const now = new Date();
+  const [d, m, y] = [now.getDate(), now.getMonth() + 1, now.getFullYear()];
+  const [ld, lm, , leap] = call(R.convertSolar2Lunar, d, m, y, 7);
+  $('#today').textContent = `Hôm nay ${now.toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'numeric', year: 'numeric' })}, tức ngày ${ld} tháng ${lm}${leap ? ' nhuận' : ''} âm lịch.`;
+
+  const go = $('#go');
+  go.disabled = false;
+  go.onclick = () => {
+    const gios = read().filter((g) => g.name || g.day || g.month);
+    const ok = (g) => g.name && Number.isInteger(g.day) && g.day >= 1 && g.day <= 30 && Number.isInteger(g.month) && g.month >= 1 && g.month <= 12;
+    if (!gios.every(ok)) {
+      msg.textContent = 'Kiểm tra lại: mỗi ngày giỗ cần có tên, ngày từ 1 đến 30, tháng từ 1 đến 12.';
+      return;
+    }
+    const opts = { mung1: $('#mung1').checked, ram: $('#ram').checked };
+    const from = call(R.jdFromDate, d, m, y);
+    const events = call(R.buildEvents, from, Math.round(Number($('#years').value) * 365.25), gios, opts);
+    if (!events.length) {
+      msg.textContent = 'Chưa có gì để thêm: hãy nhập ngày giỗ hoặc chọn mùng 1, rằm.';
+      return;
+    }
+    const ics = call(R.toIcs, events, new Date().toISOString());
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([ics], { type: 'text/calendar;charset=utf-8' }));
+    a.download = 'lich-am.ics';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+    msg.textContent = `Đã tạo ${events.length} lời nhắc. Mở file lich-am.ics để thêm vào lịch.`;
+  };
+</script>
+</body>
+</html>
