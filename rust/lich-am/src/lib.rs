@@ -160,9 +160,9 @@ static S_JD_FROM_DATE_OUT: wire::Schema = wire::Schema::Dyn;
 #[wasm_bindgen(js_name = "jdFromDateWire")]
 pub fn jd_from_date_wire(len: u32) -> Result<u32, JsError> {
     wire_io(len, |r, w| {
-        let dd: serde_json::Value = wire::read_value(r, &S_JD_FROM_DATE_0)?;
-        let mm: serde_json::Value = wire::read_value(r, &S_JD_FROM_DATE_1)?;
-        let yy: serde_json::Value = wire::read_value(r, &S_JD_FROM_DATE_2)?;
+        let dd: Value = wire::read_value(r, &S_JD_FROM_DATE_0)?;
+        let mm: Value = wire::read_value(r, &S_JD_FROM_DATE_1)?;
+        let yy: Value = wire::read_value(r, &S_JD_FROM_DATE_2)?;
         let out = &port::jd_from_date(dd, mm, yy)?;
         wire::write_value(w, out, &S_JD_FROM_DATE_OUT)?;
         Ok(())
@@ -176,7 +176,7 @@ static S_JD_TO_DATE_OUT: wire::Schema = wire::Schema::Dyn;
 #[wasm_bindgen(js_name = "jdToDateWire")]
 pub fn jd_to_date_wire(len: u32) -> Result<u32, JsError> {
     wire_io(len, |r, w| {
-        let jd: serde_json::Value = wire::read_value(r, &S_JD_TO_DATE_0)?;
+        let jd: Value = wire::read_value(r, &S_JD_TO_DATE_0)?;
         let out = &port::jd_to_date(jd)?;
         wire::write_value(w, out, &S_JD_TO_DATE_OUT)?;
         Ok(())
@@ -186,17 +186,17 @@ pub fn jd_to_date_wire(len: u32) -> Result<u32, JsError> {
 static S_CONVERT_SOLAR2_LUNAR_0: wire::Schema = wire::Schema::Dyn;
 static S_CONVERT_SOLAR2_LUNAR_1: wire::Schema = wire::Schema::Dyn;
 static S_CONVERT_SOLAR2_LUNAR_2: wire::Schema = wire::Schema::Dyn;
+static S_CONVERT_SOLAR2_LUNAR_3: wire::Schema = wire::Schema::Dyn;
 static S_CONVERT_SOLAR2_LUNAR_OUT: wire::Schema = wire::Schema::Dyn;
 
 /// `convertSolar2Lunar` over the binary wire.
 #[wasm_bindgen(js_name = "convertSolar2LunarWire")]
 pub fn convert_solar2_lunar_wire(len: u32) -> Result<u32, JsError> {
     wire_io(len, |r, w| {
-        let dd: serde_json::Value = wire::read_value(r, &S_CONVERT_SOLAR2_LUNAR_0)?;
-        let mm: serde_json::Value = wire::read_value(r, &S_CONVERT_SOLAR2_LUNAR_1)?;
-        let yy: serde_json::Value = wire::read_value(r, &S_CONVERT_SOLAR2_LUNAR_2)?;
-        let tz: Option<serde_json::Value> =
-            serde_json::from_value(wire::read_dyn(r)?).map_err(|e| format!("TypeError: {e}"))?;
+        let dd: Value = wire::read_value(r, &S_CONVERT_SOLAR2_LUNAR_0)?;
+        let mm: Value = wire::read_value(r, &S_CONVERT_SOLAR2_LUNAR_1)?;
+        let yy: Value = wire::read_value(r, &S_CONVERT_SOLAR2_LUNAR_2)?;
+        let tz: Value = wire::read_value(r, &S_CONVERT_SOLAR2_LUNAR_3)?;
         let out = &port::convert_solar2_lunar(dd, mm, yy, tz)?;
         wire::write_value(w, out, &S_CONVERT_SOLAR2_LUNAR_OUT)?;
         Ok(())
@@ -213,10 +213,10 @@ static S_BUILD_EVENTS_OUT: wire::Schema = wire::Schema::Dyn;
 #[wasm_bindgen(js_name = "buildEventsWire")]
 pub fn build_events_wire(len: u32) -> Result<u32, JsError> {
     wire_io(len, |r, w| {
-        let from_jd: serde_json::Value = wire::read_value(r, &S_BUILD_EVENTS_0)?;
-        let days: serde_json::Value = wire::read_value(r, &S_BUILD_EVENTS_1)?;
-        let gios: serde_json::Value = wire::read_value(r, &S_BUILD_EVENTS_2)?;
-        let opts: serde_json::Value = wire::read_value(r, &S_BUILD_EVENTS_3)?;
+        let from_jd: Value = wire::read_value(r, &S_BUILD_EVENTS_0)?;
+        let days: Value = wire::read_value(r, &S_BUILD_EVENTS_1)?;
+        let gios: Value = wire::read_value(r, &S_BUILD_EVENTS_2)?;
+        let opts: Value = wire::read_value(r, &S_BUILD_EVENTS_3)?;
         let out = &port::build_events(from_jd, days, gios, opts)?;
         wire::write_value(w, out, &S_BUILD_EVENTS_OUT)?;
         Ok(())
@@ -231,8 +231,8 @@ static S_TO_ICS_OUT: wire::Schema = wire::Schema::Dyn;
 #[wasm_bindgen(js_name = "toIcsWire")]
 pub fn to_ics_wire(len: u32) -> Result<u32, JsError> {
     wire_io(len, |r, w| {
-        let events: serde_json::Value = wire::read_value(r, &S_TO_ICS_0)?;
-        let now: serde_json::Value = wire::read_value(r, &S_TO_ICS_1)?;
+        let events: Value = wire::read_value(r, &S_TO_ICS_0)?;
+        let now: Value = wire::read_value(r, &S_TO_ICS_1)?;
         let out = &port::to_ics(events, now)?;
         wire::write_value(w, out, &S_TO_ICS_OUT)?;
         Ok(())

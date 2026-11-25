@@ -123,8 +123,12 @@ fn solar_to_lunar(dd: f64, mm: f64, yy: f64, tz: f64) -> [f64; 4] {
     let day_number = jd_from(dd, mm, yy);
     let k = ((day_number - 2415021.076998695) / 29.530588853).floor();
     let mut month_start = new_moon_day(k + 1.0, tz);
-    if month_start > day_number {
-        month_start = new_moon_day(k, tz);
+    // k can be one too high when the new moon falls just after midnight (e.g. 7/5/2054):
+    // step back until month_start <= day_number, at most 3 times (as in lunar.js).
+    let mut i = 0.0;
+    while month_start > day_number && i < 3.0 {
+        month_start = new_moon_day(k - i, tz);
+        i += 1.0;
     }
     let mut a11 = lunar_month11(yy, tz);
     let mut b11 = a11;
@@ -174,6 +178,57 @@ fn truthy(v: Option<&Value>) -> bool {
     }
 }
 
+/// JS `ToNumber` as `>` applies it; NaN compares false.
+/// shortcut: arrays and objects give NaN (JS would stringify `[30]` to 30), handle them if a caller sends them.
+fn to_number(v: Option<&Value>) -> f64 {
+    match v {
+        Some(Value::Null) => 0.0,
+        Some(Value::Bool(b)) => f64::from(u8::from(*b)),
+        Some(Value::Number(n)) => n.as_f64().unwrap_or(f64::NAN),
+        Some(Value::String(s)) => {
+            let t = s.trim_matches(|c: char| c.is_whitespace() || c == '\u{feff}');
+            let radix = |p: &str, r| {
+                (t.len() > 2 && t[..2].eq_ignore_ascii_case(p)).then(|| {
+                    let digits = &t[2..];
+                    let ok = digits.chars().all(|c| c.is_digit(r));
+                    digits
+                        .chars()
+                        .fold(if ok { 0.0 } else { f64::NAN }, |acc, c| {
+                            acc * f64::from(r) + f64::from(c.to_digit(r).unwrap_or(0))
+                        })
+                })
+            };
+            if t.is_empty() {
+                0.0
+            } else if let Some(x) = radix("0x", 16)
+                .or_else(|| radix("0o", 8))
+                .or_else(|| radix("0b", 2))
+            {
+                x
+            } else {
+                match t.strip_prefix(['+', '-']).unwrap_or(t) {
+                    "Infinity" => {
+                        if t.starts_with('-') {
+                            f64::NEG_INFINITY
+                        } else {
+                            f64::INFINITY
+                        }
+                    }
+                    // Rust also parses "inf"/"nan"; JS does not.
+                    u if u
+                        .bytes()
+                        .any(|b| b.is_ascii_alphabetic() && b != b'e' && b != b'E') =>
+                    {
+                        f64::NAN
+                    }
+                    _ => t.parse().unwrap_or(f64::NAN),
+                }
+            }
+        }
+        _ => f64::NAN,
+    }
+}
+
 /// `${v}` for the values a name can hold.
 fn js_text(v: Option<&Value>) -> String {
     match v {
@@ -205,18 +260,13 @@ pub fn jd_to_date(jd: Value) -> Result<Value, String> {
 }
 
 /// Port of `convertSolar2Lunar` (`lunar.js:83`).
-pub fn convert_solar2_lunar(
-    dd: Value,
-    mm: Value,
-    yy: Value,
-    tz: Option<Value>,
-) -> Result<Value, String> {
+/// `tz` is a `Value`, not `Option<Value>`: the binding would read an explicit null as None (the default).
+pub fn convert_solar2_lunar(dd: Value, mm: Value, yy: Value, tz: Value) -> Result<Value, String> {
     let tz = match tz {
-        None => TZ,
-        Some(v) if crate::js::is_undefined(&v) => TZ,
+        v if crate::js::is_undefined(&v) => TZ,
         // JS: tham số mặc định không áp cho null, và null / 24 = 0.
-        Some(Value::Null) => 0.0,
-        Some(v) => num(&v, "tz")?,
+        Value::Null => 0.0,
+        v => num(&v, "tz")?,
     };
     let r = solar_to_lunar(num(&dd, "dd")?, num(&mm, "mm")?, num(&yy, "yy")?, tz);
     Ok(Value::Array(r.into_iter().map(js_num).collect()))
@@ -264,7 +314,8 @@ pub fn build_events(
             let day = g.get("day").and_then(Value::as_f64);
             let month = g.get("month").and_then(Value::as_f64);
             // Giỗ cúng vào tháng thường; tháng thiếu thì giỗ ngày 30 dời về ngày 29.
-            let hit = day == Some(ld) || (last_day_of_month && day.is_some_and(|d| d > ld));
+            // `===` needs a number, but `>` coerces: JS `"30" > 29` is true.
+            let hit = day == Some(ld) || (last_day_of_month && to_number(g.get("day")) > ld);
             if leap == 0.0 && month == Some(lm) && hit {
                 let title = format!(
                     "Giỗ {} ({}/{} âm)",
@@ -307,11 +358,13 @@ fn esc(s: &str) -> String {
                 out.push('\\');
                 out.push(c);
             }
-            '\r' if chars.peek() == Some(&'\n') => {
-                chars.next();
+            // JS: .replace(/[\r\n]+/g, ' ') — a run of CR/LF becomes one space.
+            '\r' | '\n' => {
+                while matches!(chars.peek(), Some('\r' | '\n')) {
+                    chars.next();
+                }
                 out.push(' ');
             }
-            '\n' => out.push(' '),
             _ => out.push(c),
         }
     }
@@ -356,13 +409,23 @@ pub fn to_ics(events: Value, now: Value) -> Result<Value, String> {
     ]
     .map(String::from)
     .to_vec();
+    // Repeated UIDs get -2, -3, ... so importers keep every event (JS: the `seen` Map).
+    let mut seen: std::collections::HashMap<String, u32> = std::collections::HashMap::new();
     for e in events.as_array().map(Vec::as_slice).unwrap_or_default() {
         let solar = solar_of(e)?;
         let title = js_text(e.get("title"));
         let start = ymd(solar);
         let [d, m, y] = solar;
+        let base = format!("{start}-{}", hash(&title));
+        let n = seen.entry(base.clone()).or_insert(0);
+        *n += 1;
+        let suffix = if *n > 1 {
+            format!("-{n}")
+        } else {
+            String::new()
+        };
         lines.push("BEGIN:VEVENT".into());
-        lines.push(format!("UID:{start}-{}@lich-am", hash(&title)));
+        lines.push(format!("UID:{base}{suffix}@lich-am"));
         lines.push(format!("DTSTAMP:{stamp}"));
         lines.push(format!("DTSTART;VALUE=DATE:{start}"));
         lines.push(format!(
@@ -423,8 +486,23 @@ mod tests {
     }
 
     #[test]
+    fn to_number_like_js() {
+        let n = |v: Value| to_number(Some(&v));
+        assert_eq!(n(json!(" 30 ")), 30.0);
+        assert_eq!(n(json!("0x1e")), 30.0);
+        assert_eq!(n(json!("")), 0.0);
+        assert_eq!(n(json!("-Infinity")), f64::NEG_INFINITY);
+        assert!(
+            n(json!("+-Infinity")).is_nan()
+                && n(json!("inf")).is_nan()
+                && n(json!("0x+1")).is_nan()
+        );
+        assert!(to_number(None).is_nan());
+    }
+
+    #[test]
     fn escapes_and_hash() {
-        assert_eq!(esc("a;b,c\\d\r\ne\nf\rg"), "a\\;b\\,c\\\\d e f\rg");
+        assert_eq!(esc("a;b,c\\d\r\ne\nf\rg"), "a\\;b\\,c\\\\d e f g");
         assert_eq!(hash(""), "0");
     }
 }

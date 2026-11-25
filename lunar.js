@@ -84,7 +84,9 @@ export function convertSolar2Lunar(dd, mm, yy, tz = TZ) {
   const dayNumber = jdFromDate(dd, mm, yy);
   const k = Math.floor((dayNumber - 2415021.076998695) / 29.530588853);
   let monthStart = getNewMoonDay(k + 1, tz);
-  if (monthStart > dayNumber) monthStart = getNewMoonDay(k, tz);
+  // k có thể cao hơn 1 khi sóc rơi ngay sau nửa đêm (vd 7/5/2054): lùi tới khi monthStart <= dayNumber,
+  // nếu chỉ lùi một lần thì ra "ngày 0". Giới hạn 3 bước để input NaN không lặp mãi.
+  for (let i = 0; monthStart > dayNumber && i < 3; i++) monthStart = getNewMoonDay(k - i, tz);
   let a11 = getLunarMonth11(yy, tz);
   let b11 = a11;
   let lunarYear;
@@ -146,14 +148,19 @@ function hash(s) {
 export function toIcs(events, now) {
   const p = (n) => String(n).padStart(2, '0');
   const ymd = ([d, m, y]) => `${y}${p(m)}${p(d)}`;
-  const esc = (s) => s.replace(/[\\;,]/g, (c) => '\\' + c).replace(/\r?\n/g, ' ');
+  const esc = (s) => s.replace(/[\\;,]/g, (c) => '\\' + c).replace(/[\r\n]+/g, ' ');
   const stamp = now.replace(/[-:]/g, '').slice(0, 15) + 'Z';
   const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//lich-am//VI', 'CALSCALE:GREGORIAN', 'X-WR-CALNAME:Lịch âm'];
+  // UID trùng thì Google chỉ giữ một sự kiện: thêm -2, -3 cho lần lặp (cùng người nhập hai lần, hoặc hash trùng).
+  const seen = new Map();
   for (const e of events) {
     const start = ymd(e.solar);
+    const base = `${start}-${hash(e.title)}`;
+    const n = (seen.get(base) || 0) + 1;
+    seen.set(base, n);
     lines.push(
       'BEGIN:VEVENT',
-      `UID:${start}-${hash(e.title)}@lich-am`,
+      `UID:${base}${n > 1 ? `-${n}` : ''}@lich-am`,
       `DTSTAMP:${stamp}`,
       `DTSTART;VALUE=DATE:${start}`,
       `DTEND;VALUE=DATE:${ymd(jdToDate(jdFromDate(...e.solar) + 1))}`,

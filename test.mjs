@@ -10,6 +10,8 @@ const cases = [
   [[22, 3, 2023], [1, 2, 2023, 1]], // mùng 1 tháng 2 nhuận 2023
   [[25, 7, 2025], [1, 6, 2025, 1]], // mùng 1 tháng 6 nhuận 2025
   [[6, 10, 2025], [15, 8, 2025, 0]], // Trung thu 2025
+  [[7, 5, 2054], [30, 3, 2054, 0]], // sóc ngay sau nửa đêm: trước đây ra "ngày 0"
+  [[9, 4, 2062], [30, 2, 2062, 0]],
 ];
 for (const [solar, lunar] of cases) {
   assert.deepStrictEqual(L.convertSolar2Lunar(...solar), lunar, `${solar.join('/')}`);
@@ -36,5 +38,11 @@ const triggers = (prefix) => ics.split('BEGIN:VEVENT').find((b) => b.includes(`S
 assert.deepStrictEqual(triggers('Giỗ'), ['TRIGGER:-PT63H', 'TRIGGER:-PT6H']);
 assert.deepStrictEqual(triggers('Mùng 1'), ['TRIGGER:-PT6H']);
 assert.deepStrictEqual(triggers('Rằm'), ['TRIGGER:-PT6H']);
+
+// Cùng người nhập hai lần, hoặc hai tên có hash trùng ('cụ Ly'/'cụ MZ'): UID vẫn phải khác nhau.
+const dup = L.buildEvents(from, days, [{ name: 'cụ Ly', day: 5, month: 3 }, { name: 'cụ MZ', day: 5, month: 3 }, { name: 'cụ Ly', day: 5, month: 3 }], {});
+const uids = L.toIcs(dup, '2026-01-01T00:00:00.000Z').match(/^UID:.*$/gm);
+assert.strictEqual(uids.length, 3);
+assert.strictEqual(new Set(uids).size, 3);
 
 console.log(`OK: ${cases.length} ngày chuyển đổi, ${ev.length} sự kiện`);
