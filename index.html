@@ -3,71 +3,167 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Lịch âm</title>
+<title>Nhắc Giỗ</title>
+<meta name="description" content="Nhập ngày giỗ theo âm lịch, đưa vào lịch iPhone hoặc Google Calendar để được nhắc mỗi năm.">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<link rel="preload" href="fonts/be-vietnam-pro-400-vietnamese.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="fonts/fonts.css">
 <style>
-  :root { --bg:#faf7f2; --fg:#2b2622; --muted:#6b625a; --line:#d9d1c6; --card:#fff; --accent:#a3361f; --accent-fg:#fff; }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) { --bg:#1c1a18; --fg:#efe9e2; --muted:#a89f95; --line:#3a3532; --card:#262321; --accent:#e0694f; --accent-fg:#1c1a18; }
+  :root {
+    --bg: #FFFFFF; --text: #111111; --soft: #5F6368; --line: #E5E7EB; --field: #FFFFFF; --field-line: #C9CDD3;
+    --tint: #F3F4F6; --btn: #111111; --btn-hover: #2B2B2B; --on-btn: #FFFFFF; --error: #B3261E;
+    color-scheme: light;
   }
-  :root[data-theme="dark"] { --bg:#1c1a18; --fg:#efe9e2; --muted:#a89f95; --line:#3a3532; --card:#262321; --accent:#e0694f; --accent-fg:#1c1a18; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #000000; --text: #F2F2F2; --soft: #A8ACB2; --line: #2A2A2A; --field: #111111; --field-line: #3D3D3D;
+      --tint: #161616; --btn: #F2F2F2; --btn-hover: #D9D9D9; --on-btn: #000000; --error: #FF8A80;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #000000; --text: #F2F2F2; --soft: #A8ACB2; --line: #2A2A2A; --field: #111111; --field-line: #3D3D3D;
+    --tint: #161616; --btn: #F2F2F2; --btn-hover: #D9D9D9; --on-btn: #000000; --error: #FF8A80;
+    color-scheme: dark;
+  }
+
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--fg); font: 18px/1.5 system-ui, -apple-system, sans-serif; }
-  main { max-width: 560px; margin: 0 auto; padding: 24px 16px 48px; }
-  h1 { font-size: 30px; margin: 0 0 4px; }
-  h2 { font-size: 20px; margin: 28px 0 8px; }
-  .muted { color: var(--muted); }
-  .row { display: grid; grid-template-columns: 1fr 72px 72px 48px; gap: 8px; margin-bottom: 8px; }
-  .head { font-size: 15px; color: var(--muted); margin-bottom: 4px; }
-  input, select, button { font: inherit; color: inherit; }
-  input, select { width: 100%; min-height: 48px; padding: 0 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
-  button { min-height: 48px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); cursor: pointer; }
-  .check { display: flex; align-items: center; gap: 12px; min-height: 48px; }
-  .check input { width: 24px; min-height: 24px; }
-  .primary { width: 100%; margin-top: 28px; border: 0; background: var(--accent); color: var(--accent-fg); font-weight: 600; font-size: 20px; }
-  #msg { min-height: 1.5em; margin-top: 12px; }
-  ol { padding-left: 22px; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif; font-size: 19px; line-height: 1.55;
+    caret-color: var(--text);
+  }
+  ::selection { background: var(--text); color: var(--bg); }
+  :focus-visible { outline: 3px solid var(--text); outline-offset: 3px; }
+  main { max-width: 560px; margin: 0 auto; padding: 32px 20px 48px; }
+  h1, h2, h3, p, ol { margin: 0; }
+  button, input, select { font-family: inherit; color: inherit; }
+
+  header h1 { font-size: 32px; font-weight: 600; line-height: 1.2; letter-spacing: -0.01em; }
+  #today { margin-top: 8px; color: var(--soft); }
+  #today strong { display: block; color: var(--text); font-weight: 600; }
+
+  section { margin-top: 36px; }
+  h2 { font-size: 22px; font-weight: 600; line-height: 1.3; }
+  h2 + * { margin-top: 14px; }
+
+  .row {
+    display: grid; grid-template-columns: 1fr 104px 104px 56px; gap: 10px; align-items: end;
+    grid-template-areas: "name day month del"; margin-bottom: 14px;
+  }
+  .f { display: block; }
+  .f span { display: block; font-size: 16px; color: var(--soft); margin-bottom: 4px; }
+  .f input {
+    display: block; width: 100%; min-height: 56px; padding: 0 14px; font-size: 20px; font-weight: 400;
+    background: var(--field); border: 1px solid var(--field-line); border-radius: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  .f input:focus { outline: none; border-color: var(--text); box-shadow: 0 0 0 1px var(--text); }
+  .f input::placeholder { color: var(--soft); opacity: .8; }
+  .f input::-webkit-outer-spin-button, .f input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .f input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+  .f-name { grid-area: name; } .f-day { grid-area: day; } .f-month { grid-area: month; }
+  .del {
+    grid-area: del; display: grid; place-items: center; min-height: 56px; padding: 0;
+    background: transparent; border: 1px solid var(--field-line); border-radius: 12px; color: var(--soft); cursor: pointer;
+  }
+  .del:hover { color: var(--text); border-color: var(--text); }
+  .del svg, .add svg { width: 20px; height: 20px; }
+  @media (max-width: 440px) {
+    .row { grid-template-columns: 1fr 1fr 56px; grid-template-areas: "name name name" "day month del"; }
+  }
+  .add {
+    display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 4px;
+    background: none; border: 0; font-size: 19px; font-weight: 600; cursor: pointer;
+  }
+  .add:hover { text-decoration: underline; text-underline-offset: 4px; }
+
+  .check { display: flex; align-items: center; gap: 14px; min-height: 52px; cursor: pointer; }
+  .check input { width: 26px; height: 26px; margin: 0; accent-color: var(--text); flex: none; }
+  .years { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; min-height: 60px; }
+  .years select {
+    min-height: 52px; padding: 0 14px; font-size: 19px; background: var(--field);
+    border: 1px solid var(--field-line); border-radius: 12px; cursor: pointer;
+  }
+
+  .primary {
+    display: block; width: 100%; margin-top: 32px; min-height: 60px; border: 0; border-radius: 14px;
+    background: var(--btn); color: var(--on-btn); font-size: 20px; font-weight: 600; cursor: pointer;
+  }
+  .primary:hover { background: var(--btn-hover); }
+  .primary:disabled { opacity: .5; cursor: progress; }
+
+  #msg:empty { display: none; }
+  #msg { margin-top: 18px; }
+  #msg strong { display: block; font-weight: 600; }
+  #msg[data-kind="ok"] { background: var(--tint); border-radius: 12px; padding: 14px 16px; }
+  #msg[data-kind="error"] { color: var(--error); }
+
+  .guide { border-top: 1px solid var(--line); padding-top: 32px; margin-top: 44px; }
+  .guide h3 { font-size: 19px; font-weight: 600; margin-top: 22px; }
+  .guide ol { margin-top: 6px; padding-left: 24px; }
+  .guide li + li { margin-top: 6px; }
+  .guide li::marker { color: var(--soft); }
+  .note { margin-top: 24px; color: var(--soft); }
+  .foot { margin-top: 32px; color: var(--soft); font-size: 16px; }
 </style>
 </head>
 <body>
 <main>
-  <h1>Lịch âm</h1>
-  <p id="today" class="muted">Đang tải…</p>
+  <header>
+    <h1>Nhắc Giỗ</h1>
+    <p id="today">Đang tải lịch…</p>
+  </header>
 
-  <h2>Ngày giỗ (theo âm lịch)</h2>
-  <div class="row head" aria-hidden="true"><span>Tên</span><span>Ngày</span><span>Tháng</span><span></span></div>
-  <div id="rows"></div>
-  <button type="button" id="add">+ Thêm ngày giỗ</button>
+  <section aria-labelledby="h-gio">
+    <h2 id="h-gio">Ngày giỗ trong nhà</h2>
+    <div>
+      <div id="rows"></div>
+      <button type="button" class="add" id="add"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Thêm ngày giỗ</button>
+    </div>
+  </section>
 
-  <h2>Nhắc thêm</h2>
-  <label class="check"><input type="checkbox" id="mung1" checked> Mùng 1 hằng tháng</label>
-  <label class="check"><input type="checkbox" id="ram" checked> Rằm (15) hằng tháng</label>
-  <label class="check">Tạo lịch cho
-    <select id="years" style="width:auto"><option>1</option><option>3</option><option selected>5</option><option>10</option></select> năm tới
-  </label>
+  <section aria-labelledby="h-nhac">
+    <h2 id="h-nhac">Nhắc thêm</h2>
+    <div>
+      <label class="check"><input type="checkbox" id="mung1" checked> Mùng 1 hằng tháng</label>
+      <label class="check"><input type="checkbox" id="ram" checked> Rằm (ngày 15) hằng tháng</label>
+      <label class="years">Tạo lịch cho
+        <select id="years"><option>1</option><option>3</option><option selected>5</option><option>10</option></select> năm tới
+      </label>
+    </div>
+    <button type="button" class="primary" id="go" disabled>Tải về lịch</button>
+    <p id="msg" role="status"></p>
+  </section>
 
-  <button type="button" class="primary" id="go" disabled>Tải về lịch</button>
-  <p id="msg" role="status"></p>
+  <section class="guide" aria-labelledby="h-guide">
+    <h2 id="h-guide">Cách thêm vào lịch</h2>
+    <div>
+      <h3>iPhone</h3>
+      <ol>
+        <li>Mở trang này bằng Safari, bấm <b>Tải về lịch</b>.</li>
+        <li>Màn hình danh sách sự kiện hiện ra, bấm <b>Thêm tất cả</b>. Sự kiện vào <b>lịch mặc định</b> của iPhone.</li>
+        <li>Muốn vào lịch Gmail (hiện cả trên Google Calendar, giữ nguyên giờ nhắc): trước đó vào <b>Cài đặt → Ứng dụng → Lịch → Lịch mặc định</b>, chọn tài khoản Gmail.</li>
+        <li>Nếu Safari chỉ hỏi tải file: mở app <b>Tệp</b> → <b>Tải về</b> → bấm <b>lich-am.ics</b> → <b>Thêm tất cả</b>.</li>
+      </ol>
+      <h3>Android</h3>
+      <ol>
+        <li>Mở trang này bằng Chrome, bấm <b>Tải về lịch</b>.</li>
+        <li>Bấm <b>Mở</b> trên thông báo tải xong. Lỡ tắt thông báo: Chrome → <b>⋮</b> → <b>Tệp đã tải xuống</b> → bấm <b>lich-am.ics</b>.</li>
+        <li>Google Calendar mở ra, chọn lịch (tài khoản Gmail) rồi bấm thêm.</li>
+      </ol>
+      <h3>Máy tính (không bắt buộc)</h3>
+      <ol>
+        <li>Trên Google Calendar, tạo một lịch mới tên “Lịch âm”, rồi đặt thông báo mặc định cho lịch đó (ví dụ: 1 ngày trước). Google bỏ qua giờ nhắc có sẵn trong file.</li>
+        <li>Vào Cài đặt → Nhập và xuất → chọn file <b>lich-am.ics</b>, nhập vào lịch “Lịch âm”.</li>
+      </ol>
+    </div>
+    <p class="note">Giỗ được nhắc lúc 9 giờ sáng 3 ngày trước và 18 giờ hôm trước. Mùng 1 và rằm được nhắc lúc 18 giờ hôm trước.</p>
+  </section>
 
-  <h2>Cách thêm vào lịch</h2>
-  <p><b>iPhone:</b></p>
-  <ol>
-    <li>Mở trang này bằng Safari, bấm <b>Tải về lịch</b>.</li>
-    <li>Màn hình danh sách sự kiện hiện ra, bấm <b>Thêm tất cả</b>. Sự kiện vào <b>lịch mặc định</b> của iPhone.</li>
-    <li>Muốn vào lịch Gmail (hiện cả trên Google Calendar, giữ nguyên giờ nhắc): trước đó vào <b>Cài đặt → Ứng dụng → Lịch → Lịch mặc định</b>, chọn tài khoản Gmail.</li>
-    <li>Nếu Safari chỉ hỏi tải file: mở app <b>Tệp</b> → <b>Tải về</b> → bấm <b>lich-am.ics</b> → <b>Thêm tất cả</b>.</li>
-  </ol>
-  <p><b>Android:</b></p>
-  <ol>
-    <li>Mở trang này bằng Chrome, bấm <b>Tải về lịch</b>.</li>
-    <li>Bấm <b>Mở</b> trên thông báo tải xong. Lỡ tắt thông báo: Chrome → <b>⋮</b> → <b>Tệp đã tải xuống</b> → bấm <b>lich-am.ics</b>.</li>
-    <li>Google Calendar mở ra, chọn lịch (tài khoản Gmail) rồi bấm thêm.</li>
-  </ol>
-  <p class="muted">Giỗ được nhắc lúc 9 giờ sáng 3 ngày trước và 18 giờ hôm trước. Mùng 1 và rằm được nhắc lúc 18 giờ hôm trước.</p>
-  <p><b>Google Calendar trên máy tính</b> (không bắt buộc, chỉ khi không dùng điện thoại):</p>
-  <ol>
-    <li>Tạo một lịch mới tên “Lịch âm”, rồi trong phần cài đặt của lịch đó, đặt thông báo mặc định (ví dụ: 1 ngày trước). Google bỏ qua giờ nhắc có sẵn trong file.</li>
-    <li>Vào Cài đặt → Nhập và xuất → chọn file <b>lich-am.ics</b>, nhập vào lịch “Lịch âm”.</li>
-  </ol>
+  <p class="foot">Lịch tính ngay trên máy bạn. Danh sách giỗ chỉ lưu trong trình duyệt này, không gửi đi đâu.</p>
 </main>
 
 <script type="module">
@@ -78,6 +174,14 @@
   // Hàm Rust nhận và trả JSON dạng chuỗi.
   const call = (fn, ...args) => JSON.parse(fn(...args.map((a) => JSON.stringify(a))));
 
+  function say(kind, title, text = '') {
+    const b = document.createElement('strong');
+    b.textContent = title;
+    msg.dataset.kind = kind;
+    msg.replaceChildren(b, document.createTextNode(text));
+  }
+
+  const X = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
   const rows = $('#rows');
   function read() {
     return [...rows.children].map((r) => {
@@ -91,10 +195,10 @@
   function addRow(g = {}) {
     const row = document.createElement('div');
     row.className = 'row';
-    row.innerHTML = '<input aria-label="Tên người mất" placeholder="Ông nội">'
-      + '<input aria-label="Ngày âm" type="number" inputmode="numeric" min="1" max="30" placeholder="Ngày">'
-      + '<input aria-label="Tháng âm" type="number" inputmode="numeric" min="1" max="12" placeholder="Tháng">'
-      + '<button type="button" aria-label="Xoá dòng này">✕</button>';
+    row.innerHTML = '<label class="f f-name"><span>Tên</span><input aria-label="Tên người mất" placeholder="VD: Ông nội" autocomplete="off"></label>'
+      + '<label class="f f-day"><span>Ngày âm</span><input aria-label="Ngày âm" type="number" inputmode="numeric" min="1" max="30" placeholder="VD: 10"></label>'
+      + '<label class="f f-month"><span>Tháng âm</span><input aria-label="Tháng âm" type="number" inputmode="numeric" min="1" max="12" placeholder="VD: 3"></label>'
+      + '<button type="button" class="del" aria-label="Xoá dòng này">' + X + '</button>';
     const [n, d, m] = row.querySelectorAll('input');
     n.value = g.name || '';
     d.value = g.day || '';
@@ -106,19 +210,25 @@
   let saved = [];
   try { saved = JSON.parse(localStorage.getItem('gios')) || []; } catch {}
   (saved.length ? saved : [{}]).forEach(addRow);
-  $('#add').onclick = () => addRow();
+  $('#add').onclick = () => { addRow(); rows.lastElementChild.querySelector('input').focus(); };
 
   try {
     await init();
   } catch (e) {
-    msg.textContent = 'Không tải được bộ tính lịch. Hãy mở trang qua http(s), không mở trực tiếp file.';
+    say('error', 'Không tải được bộ tính lịch.', ' Hãy mở trang qua http(s), không mở trực tiếp file.');
     throw e;
   }
 
+  const CAN = ['Giáp', 'Ất', 'Bính', 'Đinh', 'Mậu', 'Kỷ', 'Canh', 'Tân', 'Nhâm', 'Quý'];
+  const CHI = ['Tý', 'Sửu', 'Dần', 'Mão', 'Thìn', 'Tỵ', 'Ngọ', 'Mùi', 'Thân', 'Dậu', 'Tuất', 'Hợi'];
   const now = new Date();
   const [d, m, y] = [now.getDate(), now.getMonth() + 1, now.getFullYear()];
-  const [ld, lm, , leap] = call(R.convertSolar2Lunar, d, m, y, 7);
-  $('#today').textContent = `Hôm nay ${now.toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'numeric', year: 'numeric' })}, tức ngày ${ld} tháng ${lm}${leap ? ' nhuận' : ''} âm lịch.`;
+  const [ld, lm, ly, leap] = call(R.convertSolar2Lunar, d, m, y, 7);
+  const solar = now.toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'numeric', year: 'numeric' });
+  const lunar = `Âm lịch: ngày ${ld} tháng ${lm}${leap ? ' nhuận' : ''}, năm ${CAN[(ly + 6) % 10]} ${CHI[(ly + 8) % 12]}`;
+  const strong = document.createElement('strong');
+  strong.textContent = `Hôm nay ${solar}`;
+  $('#today').replaceChildren(strong, document.createTextNode(lunar));
 
   const go = $('#go');
   go.disabled = false;
@@ -126,14 +236,14 @@
     const gios = read().filter((g) => g.name || g.day || g.month);
     const ok = (g) => g.name && Number.isInteger(g.day) && g.day >= 1 && g.day <= 30 && Number.isInteger(g.month) && g.month >= 1 && g.month <= 12;
     if (!gios.every(ok)) {
-      msg.textContent = 'Kiểm tra lại: mỗi ngày giỗ cần có tên, ngày từ 1 đến 30, tháng từ 1 đến 12.';
+      say('error', 'Kiểm tra lại:', ' mỗi ngày giỗ cần có tên, ngày từ 1 đến 30, tháng từ 1 đến 12.');
       return;
     }
     const opts = { mung1: $('#mung1').checked, ram: $('#ram').checked };
     const from = call(R.jdFromDate, d, m, y);
     const events = call(R.buildEvents, from, Math.round(Number($('#years').value) * 365.25), gios, opts);
     if (!events.length) {
-      msg.textContent = 'Chưa có gì để thêm: hãy nhập ngày giỗ hoặc chọn mùng 1, rằm.';
+      say('error', 'Chưa có gì để thêm.', ' Hãy nhập ngày giỗ hoặc chọn mùng 1, rằm.');
       return;
     }
     const ics = call(R.toIcs, events, new Date().toISOString());
@@ -151,7 +261,7 @@
       setTimeout(() => URL.revokeObjectURL(url), 60000);
     }
     const android = /Android/.test(navigator.userAgent);
-    msg.textContent = `Đã tạo ${events.length} lời nhắc. ` + (ios ? 'Bấm Thêm tất cả để đưa vào lịch mặc định.'
+    say('ok', `Đã tạo ${events.length} lời nhắc.`, ios ? 'Bấm Thêm tất cả để đưa vào lịch mặc định.'
       : android ? 'Bấm Mở trên thông báo tải xong, rồi chọn Google Calendar.'
       : 'Mở file lich-am.ics để thêm vào lịch.');
   };
